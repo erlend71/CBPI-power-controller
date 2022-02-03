@@ -31,7 +31,7 @@ void setup()
 
 void loop()
 {
-    u_long lastTransmission = 0, mqDelay = 0;
+    static u_long lastTransmission = 0, mqDelay = 0;
     u_long now = millis();
 
     switch (checkEncoderButton())
