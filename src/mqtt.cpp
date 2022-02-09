@@ -6,20 +6,23 @@
  *
  */
 
-// local variables 
+// local variables
 bool mqtt_dontListen; // Used to disable MQTT reception
 bool mqtt_updateReceived;
+char actorID[30];
+String str_actorID;
 
 WiFiClient espClient;
 PubSubClient client(MQTT_SERVER, MQTT_PORT, mqtt_rx_callback, espClient);
 
-//for json decoding
-#define MSG_BUFFER_SIZE (200)
-char msg[MSG_BUFFER_SIZE];
+// for json decoding
+//#define MSG_BUFFER_SIZE (300)
+// char msg[MSG_BUFFER_SIZE];
+StaticJsonDocument<300> doc; // used for all occations
 
-//global varialbes defined in main
+// global varialbes defined in main
 extern bool powerIsOn;
-extern u_short percent; 
+extern u_short percent;
 
 void init_mqtt(void)
 {
@@ -61,7 +64,7 @@ void reconnect()
 {
     randomSeed(micros());
     uint16_t loop = 0; // restart counter
-    
+
     // Loop until we're reconnected
     while (!client.connected())
     {
@@ -85,7 +88,7 @@ void reconnect()
             Serial.println(" try again in 5 seconds");
             // Wait 5 seconds before retrying
             delay(5000);
-            loop++;        
+            loop++;
         }
 
         // restart wifi if we're not able to connect to MQTT server
@@ -103,25 +106,36 @@ void reconnect()
 
 void mqtt_rx_callback(char *topic, byte *payload, unsigned int length)
 {
-    char rcvdPayload[255];
+    char rcvdPayload[300];
+    Serial.println();
     // Copy message to rx string
     if (mqtt_dontListen) // do noting now
         return;
-    // store received json date
+    int n = memcmp(topic, "cbpi/actorupdate", 16);
+    if (n == 0)
+    {
+        Serial.print("received correct topic: ");
+        Serial.println(topic);
+    }
+    else
+    {
+        Serial.print("received another topic: ");
+        Serial.println(topic);
+    }
+    // store received json data
     memcpy(rcvdPayload, payload, length);
     rcvdPayload[length] = 0; // add null termination
-    Serial.println();
+    // Serial.println();
     Serial.print("Rx: ");
     Serial.println(rcvdPayload);
     decodeJson(rcvdPayload);
+    parseJson();
 }
 
-
-//StaticJsonDocument<250> doc;
-void decodeJson(char *payload)
+// StaticJsonDocument<250> doc;
+int decodeJson(char *payload)
 {
-    StaticJsonDocument<250> doc;
-    static u_short oldPct = 0;
+
     //  Deserialize the JSON document
     DeserializationError error = deserializeJson(doc, payload);
 
@@ -130,30 +144,55 @@ void decodeJson(char *payload)
     {
         Serial.print(F("deserializeJson() failed: "));
         Serial.println(error.f_str());
-        return;
+        return -1;
     }
-       
-    //Check if state has changed
-    if (doc["state"] == true)
-    {
-        if (!powerIsOn)
-            mqtt_updateReceived = true;
-        powerIsOn = true;
-    }
-    else
-    {
-        if (powerIsOn)
-            mqtt_updateReceived = true;
-        powerIsOn = false;
-    }
-    percent = doc["power"];
-    Serial.print("Power on: ");
-    Serial.print(doc["state"] == true ? "Yes" : "No");
-    Serial.print(", power: ");
-    Serial.println(percent);
-    // check if percent has changed
-    if (oldPct != percent)
-        mqtt_updateReceived = true;
-    oldPct = percent;
+    return 1;
 }
 
+int parseJson(void)
+{
+    static u_short oldPct = 0;
+    String actName = doc["name"];
+    if (memcmp(actName.c_str(), ACTOR_NAME, strlen(ACTOR_NAME)) == 0)
+    {
+        String _actorID = doc["id"];
+        //actorID = doc["id"].as< char *>();
+        strlcpy(actorID, _actorID.c_str(), _actorID.length()+1);
+        Serial.print("Name OK, id ");
+        Serial.println(actorID);
+  
+
+        // Check if state has changed
+        if (doc["state"] == true)
+        {
+            if (!powerIsOn)
+                mqtt_updateReceived = true;
+            powerIsOn = true;
+        }
+        else
+        {
+            if (powerIsOn)
+                mqtt_updateReceived = true;
+            powerIsOn = false;
+        }
+        percent = doc["power"];
+        Serial.print("Power on: ");
+        Serial.print(doc["state"] == true ? "Yes" : "No");
+        Serial.print(", power: ");
+        Serial.println(percent);
+        // check if percent has changed
+        if (oldPct != percent)
+            mqtt_updateReceived = true;
+        oldPct = percent;
+        return 1;
+    }
+    else // something else arrived
+    {
+
+        Serial.print("Failure, ");
+        Serial.print("received actor name '");
+        Serial.print(actName);
+        Serial.println("'");
+        return 0;
+    }
+}

@@ -31,4 +31,4 @@
 //#define MQTT_PASS ""
 
 //actor we want to control...
-#define ACTOR_NAME "BOILER HEATER"
+#define ACTOR_NAME "Boiler Heater "

@@ -2,7 +2,7 @@
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://github.com/erlend71/mqtt_power/blob/master/LICENSE)
 
-The purpose for this system is to enable a ESP32 connected to an Oled display and a rotary encoder to control and display power level and state of a [CBPI](http://www.craftbeerpi.com/) actor using MQTT.
+The purpose of this system is to enable a ESP32 connected to an Oled display and a rotary encoder to control and display power level and state of a [CBPI](http://www.craftbeerpi.com/) actor using MQTT.
 
 Instead of struggling with a small touch screen and sliders on the CBPI frontend, the power level can be adjsted by rotating the knob or pushing to toggle the on/off state. This enables quick and precise control of i.e. an electrical heater element when boiling wort.
 
@@ -10,7 +10,7 @@ I've tested this on [Alexander Vollkopf's fork](https://github.com/avollkopf/cra
 
 ## Hardware
 
-* ESP32
+* ESP32 (Rotary encoder is using a interrupt driven library not available for ESP8266)
 * I2C Oled display (currently optimized for for 64*128 resolution)
 * Rotary encoder switch
 * Wires, breadboard or other prototyping equipment

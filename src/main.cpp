@@ -23,7 +23,7 @@ void setup()
     init_mqtt();
     delay(300);
 
-    if (!client.subscribe("cbpi/actorupdate/QrfdzP7hdUjYEqm2ELCpsU"))
+    if (!client.subscribe("cbpi/actorupdate/#"))
         Serial.println(F("sub failed"));
     else
         Serial.println(F("sub OK"));
@@ -40,9 +40,24 @@ void loop()
         powerIsOn = !powerIsOn; // toggle power state
         digitalWrite(LED_BUILTIN, powerIsOn);
         if (powerIsOn)
-            client.publish("cbpi/actor/QrfdzP7hdUjYEqm2ELCpsU/on", "");
+        {
+            // String _atopic = String("cbpi/actor/") + actorID + "/on";
+            // client.publish(_atopic.c_)
+            String crazy = String("cbpi/actor/") + actorID + "/off";
+            // client.publish(_topic.c_str(), "");
+            client.publish(crazy.c_str(), "");
+            // client.publish("cbpi/actor/QrfdzP7hdUjYEqm2ELCpsU/on", "");
+        }
         else
-            client.publish("cbpi/actor/QrfdzP7hdUjYEqm2ELCpsU/off", "");
+        {
+            // String _sendTopic = "cbpi/actor/QrfdzP7hdUjYEqm2ELCpsU/off";
+            // String _header = "cbpi/actor/";
+            //  char _string[] = header.c_str() ;//sendTopic.c_string();
+            //  client.publish(sendTopic.c_string(), "");
+            String _topic = String("cbpi/actor/") + actorID + "/off";
+            client.publish(_topic.c_str(), "");
+            // client.publish("cbpi/actor/" + actorID + "/off", "");
+        }
         updateScreen(powerIsOn, percent, "Sent");
         lastTransmission = now;
         mqtt_dontListen = true;
@@ -68,13 +83,13 @@ void loop()
     }
 
     // publish MQTT data
-    if (mqDelay && now > mqDelay + 200) // 200 ms since we stopped rotating,
+    if (mqDelay && now > mqDelay + 100) // 200 ms since we stopped rotating,
     {
         // this must be fixed.....
         String header = "cbpi/actor/";
-        String guid = "QrfdzP7hdUjYEqm2ELCpsU";
+        // String guid = "QrfdzP7hdUjYEqm2ELCpsU";
         String item = "/power";
-        String topic = header + guid + item;
+        String topic = header + actorID + item;
         // const char *topic_c = added.c_str();
 
         char payload[5];
@@ -83,6 +98,7 @@ void loop()
         client.publish(topic.c_str(), payload);
         updateScreen(powerIsOn, percent, "Sent");
         Serial.print("sent MQTT ");
+        Serial.println(topic);
         Serial.println(payload);
         mqDelay = 0;
         lastTransmission = now;
@@ -90,7 +106,7 @@ void loop()
     }
 
     // ignore received updates just after sending, just in case it's fake or old news
-    if (now > lastTransmission + 500)
+    if (now > lastTransmission + 100)
         mqtt_dontListen = false; // ready to receive again..
 
     if (mqtt_updateReceived)
